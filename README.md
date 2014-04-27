@@ -1,32 +1,5 @@
-Allright, we're getting somewhere....
+<h1>async_sandbox</h1>
 
-
-TO FIRE UP:
-
-starts flask app running in twisted:
-	python hello.py
-
-starts celery worker:
-	# gotta set the os environment to run as root
-	export C_FORCE_ROOT="true"
-	celery -A hello_app.celery worker
-
-
-
-Async and Celery, the Overiew:
-When you hit host:5001, that particular URL sends 30 jobs to the one and only celery app.  
-Almost immediately, the HTTP cycle is over and the website says, "all done!"
-Meanwhile, the flask app has sent a bagillion tasks to celery which is dutifully running them in the backround.
-	- It would seem that celery organizes them based on when they came in asynchronously.
-	- i.e., 4 requests from IE has the jobs going like 0,0,0,0,1,1,1,1....
-	- from Chrome, looks more like 0,1,2-30,0,1,2-30....
-If from the flask app you print "result", you get back a hash - thinking this hash is the status / result / return of the celery app
-	- QUESTION: how do we get this back?  this result sitting in redis?
-Without status, the good news is that the jobs are a) running, b) if celery goes down, the jobs pick up again!
-
-
-NEXT STEPS:
-1) work on getting the result of the job via the hash
-2) long-poll a flask route to do that!
+<p>For the testing of flask apps in twisted, pushing jobs to celery</p>
 
 
