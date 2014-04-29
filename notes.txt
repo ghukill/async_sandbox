@@ -27,6 +27,7 @@ Without status, the good news is that the jobs are a) running, b) if celery goes
 
 NEXT STEPS:
 1) work on getting the result of the job via the hash
+	- http://docs.celeryproject.org/en/latest/userguide/monitoring.html#real-time-processing
 2) long-poll a flask route to do that!
 
 
