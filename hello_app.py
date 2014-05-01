@@ -94,7 +94,7 @@ def index():
 	jobHand_pickled = pickle.dumps(jobHand)
 	r_batch_handle.set("job_{job_num}".format(job_num=job_num),jobHand_pickled)
 
-	return json.dumps(results)
+	return "You have initiated job {job_num}.  Click <a href='/job_status/{job_num}'>here</a> to check it foo.".format(job_num=job_num)
 
 @app.route("/task_status/<task_id>")
 def task_status(task_id):
