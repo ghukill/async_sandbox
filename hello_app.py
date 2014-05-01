@@ -39,7 +39,7 @@ r_batch_handle = redis.StrictRedis(host='localhost', port=6379, db=2)
 @celery.task()
 def add_together(a, b, count):
 	print "Starting:",count
-	time.sleep(.1)
+	time.sleep(.5)
 	return a + b
 
 
@@ -81,7 +81,7 @@ def index():
 		print "WOAH NELLY!"
 
 	jobHand.estimated_tasks = task_num	
-	while count < 100:		
+	while count < task_num:		
 		result = add_together.delay(23, 42, count)
 		# jobHand.assigned_tasks.append((count,result))
 		jobHand.assigned_tasks.append(str(result))
@@ -120,12 +120,21 @@ def job_status(job_num):
 	There is an element of analysis to this, WHERE this happens will be important.
 	Example this check is working nicely only when it runs to refresh
 		- polling might take care of a lot of this..
+
+	Improvements:
+		- first shunts assigned_tasks to pending and completed
+		- then, only do pending, checks get faster each time
+
+	* Not a lot of sense of doing too much optimizing here, will be breaking these out soon enough
 	'''
 	
 	# retrieving and unpickling from redis	
 	jobHand_pickled = r_batch_handle.get("job_{job_num}".format(job_num=job_num))
 	jobHand = pickle.loads(jobHand_pickled)	
 	
+	if len(jobHand.completed_tasks) == 0:
+		return "Job Queued, waiting for others to finish."
+
 	# if length of completed == assigned, then already checked and skip below	
 	if len(jobHand.completed_tasks) == len(jobHand.assigned_tasks):
 		return "Job Complete!"
