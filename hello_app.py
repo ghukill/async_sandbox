@@ -39,7 +39,7 @@ r_batch_handle = redis.StrictRedis(host='localhost', port=6379, db=2)
 @celery.task()
 def add_together(a, b, count):
 	print "Starting:",count
-	time.sleep(.5)
+	time.sleep(.25)
 	return a + b
 
 
@@ -88,6 +88,10 @@ def index():
 		print count, result		
 		results[count] = str(result)
 		count += 1		
+
+	# copy all tasks to pending
+	jobHand.pending_tasks = jobHand.assigned_tasks[:]
+
 	print "Finished job #",job_num	
 
 	# push jobBlob to redis /2 / need to pickle first
@@ -126,36 +130,77 @@ def job_status(job_num):
 		- then, only do pending, checks get faster each time
 
 	* Not a lot of sense of doing too much optimizing here, will be breaking these out soon enough
+	* These can ALL return JSON that can be nicely formatted with Javacript via long-polling
+	* need some check to see if ANY pending jobs have run, otherwise avoid checking them all
+		- you could check jobHand.pending_tasks[0], if this is still "PENDING", then don't bother (lines 148-152)
+	* using time.time() to time the whole thing, consider pushing these to a list in jobHand for optimizing later on
 	'''
 	
+	# start timer
+	stime = time.time()
+
 	# retrieving and unpickling from redis	
 	jobHand_pickled = r_batch_handle.get("job_{job_num}".format(job_num=job_num))
 	jobHand = pickle.loads(jobHand_pickled)	
-	
-	if len(jobHand.completed_tasks) == 0:
-		return "Job Queued, waiting for others to finish."
 
-	# if length of completed == assigned, then already checked and skip below	
-	if len(jobHand.completed_tasks) == len(jobHand.assigned_tasks):
+	# check if pending jobs done
+	if len(jobHand.pending_tasks) == 0:
 		return "Job Complete!"
+	
+	# check if job has started at all!
+	job_start_result = celery.AsyncResult(jobHand.assigned_tasks[0])				
+	state = job_start_result.state
+	print "Checking if job started..."
+	if state == "PENDING":
+		return "Job Pending, waiting for others to complete.  Isn't that polite?"
 
-	# else, get status of job
-	jobHand.completed_tasks = []
-	for task in jobHand.assigned_tasks:
-		print "Checking task:",task
+	# else, check all pending jobs
+	print "Pre routing length of pending list",len(jobHand.pending_tasks)
+	for task in jobHand.pending_tasks:		
 		result = celery.AsyncResult(task)				
 		state = result.state
-		print "Status:",state
-
+		print "Checking task:",task,"/ State:",state
+		
+		# route based on state
 		if state == "SUCCESS":
-			jobHand.completed_tasks.append(task)
+			jobHand.pending_tasks.remove(task)
+			jobHand.completed_tasks.append(task)		
 
+	print "POST routing length of pending list",len(jobHand.pending_tasks)
+
+	etime = time.time()
+	ttime = (etime - stime) * 1000
+	print "Pending / Completion check took",ttime,"ms"	
 
 	# update job in redis	
 	jobHand_pickled = pickle.dumps(jobHand)
 	r_batch_handle.set("job_{job_num}".format(job_num=job_num),jobHand_pickled)
 
+	
+
 	# check status	
 	return "{completed} / {total} Completed.".format(completed=len(jobHand.completed_tasks),total=len(jobHand.assigned_tasks))
 
-	return "failsafe"
+	return "Failsafe HTTP response, nothing else to report!?"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
