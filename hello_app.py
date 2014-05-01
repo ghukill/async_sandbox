@@ -117,7 +117,9 @@ def task_status(task_id):
 def job_status(job_num):	
 
 	'''
-	There is an element of analysis to this, WHERE this happens will be important
+	There is an element of analysis to this, WHERE this happens will be important.
+	Example this check is working nicely only when it runs to refresh
+		- polling might take care of a lot of this..
 	'''
 	
 	# retrieving and unpickling from redis	
