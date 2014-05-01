@@ -49,7 +49,7 @@ def index():
 	print "Starting request..."
 	# celery task deploying
 	count = 0
-	task_num = 100
+	task_num = 500
 	results = {}
 
 	# increment and get job num
@@ -87,7 +87,7 @@ def index():
 		jobHand.assigned_tasks.append(str(result))
 		print count, result		
 		results[count] = str(result)
-		count += 1		
+		count += 1				
 
 	# copy all tasks to pending
 	jobHand.pending_tasks = jobHand.assigned_tasks[:]
@@ -155,8 +155,9 @@ def job_status(job_num):
 		return "Job Pending, waiting for others to complete.  Isn't that polite?"
 
 	# else, check all pending jobs
-	print "Pre routing length of pending list",len(jobHand.pending_tasks)
-	for task in jobHand.pending_tasks:		
+	print "Pre routing length of pending list",len(jobHand.pending_tasks)	
+	pending_worker = jobHand.pending_tasks[:] 
+	for task in pending_worker:		
 		result = celery.AsyncResult(task)				
 		state = result.state
 		print "Checking task:",task,"/ State:",state
